@@ -1,10 +1,8 @@
 package de.danielbechler.diff.differ;
 
-import de.danielbechler.diff.ObjectDiffer;
 import de.danielbechler.diff.ObjectDifferBuilder;
 import de.danielbechler.diff.node.DiffNode;
 import de.danielbechler.diff.node.PrintingVisitor;
-import de.danielbechler.diff.node.ToMapPrintingVisitor;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,21 +16,39 @@ import static org.junit.Assert.assertEquals;
  */
 public class CollectionIssuesTest {
 
-    static class Person {
+    public static class Person {
 
         String name;
 
         List<Location> locations = new ArrayList<Location>();
 
-        Person withName(String name)  {
+        public Person withName(String name)  {
             this.name = name;
 
             return this;
         }
 
-        Person withLocation(Location location) {
+        public Person withLocation(Location location) {
             locations.add(location);
 
+            return this;
+        }
+
+        public List<Location> getLocations() {
+            return locations;
+        }
+
+        public Person setLocations(List<Location> locations) {
+            this.locations = locations;
+            return this;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Person setName(String name) {
+            this.name = name;
             return this;
         }
 
@@ -60,7 +76,7 @@ public class CollectionIssuesTest {
         }
     }
 
-    static class Location {
+    public static class Location {
 
         String address;
 
@@ -69,6 +85,16 @@ public class CollectionIssuesTest {
             return this;
         }
 
+        public String getAddress() {
+            return address;
+        }
+
+        public Location setAddress(String address) {
+            this.address = address;
+            return this;
+        }
+
+        /*
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -84,6 +110,7 @@ public class CollectionIssuesTest {
         public int hashCode() {
             return address != null ? address.hashCode() : 0;
         }
+        */
 
         @Override
         public String toString() {
@@ -95,11 +122,45 @@ public class CollectionIssuesTest {
 
 
     @Test
-    public void realisticExample() throws Exception {
-        Object working = Arrays.asList(new Person().withName("a").withLocation(new Location().withAddress("address a")));
-        Object base = Arrays.asList(new Person().withName("a").withLocation(new Location().withAddress("address b").withAddress("address b")));
+    public void addLocationPropertyWithArrays() throws Exception {
+        Object working = Arrays.asList(new Person().withName("a")
+                .withLocation(new Location().withAddress("address a"))
+                .withLocation(new Location().withAddress("address b"))
+        );
 
-        assertEquals("", compareObejcts(working, base));
+        Object base = Arrays.asList(new Person().withName("a")
+                .withLocation(new Location().withAddress("address a")));
+
+        assertEquals("Property at path '/[Person{name='a', locations=[Location{address='address a'}]}]/locations[Location{address='address b'}]/address' has been added => [ address b ]\n", compareObjects(working, base));
+    }
+
+    @Test
+    public void addLocationProperty() throws Exception {
+        Object working = new Person().withName("a")
+                .withLocation(new Location().withAddress("address a"))
+                .withLocation(new Location().withAddress("address b"));
+
+        Object base = new Person().withName("a")
+                .withLocation(new Location().withAddress("address a"));
+
+        assertEquals("Property at path '/locations[Location{address='address b'}]/address' has been added => [ address b ]\n", compareObjects(working, base));
+    }
+
+
+    @Test
+    public void compareLocations() throws Exception {
+        // default differ object relays on equals method implementation to identify instances
+        // it can be overridden by configuring identity service
+
+        Object working = new Location().withAddress("address a");
+        Object base = new Location().withAddress("address b");
+
+        DiffNode node = ObjectDifferBuilder.startBuilding()
+                // how to configure identity service to compare specific bean types?
+                .build().compare(working, base);
+
+
+        assertEquals("Property at path '/address' has changed from [ address b ] to [ address a ]\n", difference(working, base, node));
     }
 
 
@@ -108,7 +169,7 @@ public class CollectionIssuesTest {
         Object working = Arrays.asList(Arrays.asList("a", "b", "c"));
         Object base = Arrays.asList(Arrays.asList("a", "b"));
 
-        assertEquals("Property at path '/[[a, b]]' has been added => [ c ]\n", compareObejcts(working, base));
+        assertEquals("Property at path '/[[a, b]]' has been added => [ c ]\n", compareObjects(working, base));
     }
 
     @Test
@@ -116,12 +177,16 @@ public class CollectionIssuesTest {
         List<String> working = Arrays.asList("a", "b", "c");
         List<String> base = Arrays.asList("a", "b");
 
-        assertEquals("Property at path '/[c]' has been added => [ c ]\n", compareObejcts(working, base));
+        assertEquals("Property at path '/[c]' has been added => [ c ]\n", compareObjects(working, base));
     }
 
-    private String compareObejcts(Object working, Object base) {
+    private String compareObjects(Object working, Object base) {
         DiffNode node = ObjectDifferBuilder.buildDefault().compare(working, base);
 
+        return difference(working, base, node);
+    }
+
+    private String difference(Object working, Object base, DiffNode node) {
         TestablePrintingVisitor visitor = new TestablePrintingVisitor(working, base);
         node.visit(visitor);
 
