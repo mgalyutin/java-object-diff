@@ -1,6 +1,7 @@
 package de.danielbechler.diff.differ;
 
 import de.danielbechler.diff.ObjectDifferBuilder;
+import de.danielbechler.diff.comparison.ComparisonStrategy;
 import de.danielbechler.diff.node.DiffNode;
 import de.danielbechler.diff.node.PrintingVisitor;
 import org.junit.Test;
@@ -94,7 +95,6 @@ public class CollectionIssuesTest {
             return this;
         }
 
-        /*
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -110,7 +110,6 @@ public class CollectionIssuesTest {
         public int hashCode() {
             return address != null ? address.hashCode() : 0;
         }
-        */
 
         @Override
         public String toString() {
@@ -155,9 +154,8 @@ public class CollectionIssuesTest {
         Object working = new Location().withAddress("address a");
         Object base = new Location().withAddress("address b");
 
-        DiffNode node = ObjectDifferBuilder.startBuilding()
-                // how to configure identity service to compare specific bean types?
-                .build().compare(working, base);
+        DiffNode node = ObjectDifferBuilder.buildDefault()
+                .compare(working, base);
 
 
         assertEquals("Property at path '/address' has changed from [ address b ] to [ address a ]\n", difference(working, base, node));
@@ -180,20 +178,20 @@ public class CollectionIssuesTest {
         assertEquals("Property at path '/[c]' has been added => [ c ]\n", compareObjects(working, base));
     }
 
-    private String compareObjects(Object working, Object base) {
+    public static String compareObjects(Object working, Object base) {
         DiffNode node = ObjectDifferBuilder.buildDefault().compare(working, base);
 
         return difference(working, base, node);
     }
 
-    private String difference(Object working, Object base, DiffNode node) {
+    public static String difference(Object working, Object base, DiffNode node) {
         TestablePrintingVisitor visitor = new TestablePrintingVisitor(working, base);
         node.visit(visitor);
 
         return visitor.getOutput();
     }
 
-    private static class TestablePrintingVisitor extends PrintingVisitor
+    public static class TestablePrintingVisitor extends PrintingVisitor
     {
         private final StringBuilder sb = new StringBuilder();
 
