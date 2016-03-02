@@ -1,8 +1,10 @@
 package de.danielbechler.diff.differ;
 
 import de.danielbechler.diff.ObjectDifferBuilder;
+import de.danielbechler.diff.identity.IdentityStrategy;
 import de.danielbechler.diff.node.DiffNode;
 import de.danielbechler.diff.node.PrintingVisitor;
+import de.danielbechler.diff.path.NodePath;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -51,7 +53,31 @@ public class MapIssuesTest {
 								.put("city", "city")
 								.build()))
 				.build();
-		DiffNode node = ObjectDifferBuilder.buildDefault().compare(working, base);
+		DiffNode node = ObjectDifferBuilder.startBuilding()
+				.identity()
+				.ofCollectionItems(NodePath.startBuilding()
+						.mapKey("locations")
+						.build()).via(new IdentityStrategy() {
+					public boolean equals(Object working, Object base) {
+						Object w = get(working, "city");
+						Object b = get(base, "city");
+						if (w != null) {
+							return w.equals(b);
+						} else {
+							return b == null;
+						}
+
+					}
+
+					private Object get(Object base, String name) {
+						if (base instanceof Map) {
+							return ((Map) base).get(name);
+						}
+						return null;
+					}
+				})
+				.and()
+				.build().compare(working, base);
 
 		TestablePrintingVisitor visitor = new TestablePrintingVisitor(working, base);
 		node.visit(visitor);

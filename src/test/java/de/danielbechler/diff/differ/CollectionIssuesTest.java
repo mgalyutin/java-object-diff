@@ -1,7 +1,6 @@
 package de.danielbechler.diff.differ;
 
 import de.danielbechler.diff.ObjectDifferBuilder;
-import de.danielbechler.diff.comparison.ComparisonStrategy;
 import de.danielbechler.diff.node.DiffNode;
 import de.danielbechler.diff.node.PrintingVisitor;
 import org.junit.Test;
